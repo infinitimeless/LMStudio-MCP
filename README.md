@@ -15,6 +15,23 @@ LMStudio-MCP creates a bridge between Claude (with MCP capabilities) and your lo
 
 This enables you to leverage your own locally running models through Claude's interface, combining Claude's capabilities with your private models.
 
+## ⚙️ Configuration
+
+The bridge supports flexible configuration for different deployment scenarios:
+
+- **Default**: Connects to `http://localhost:1234/v1`
+- **Custom Host**: Set `LMSTUDIO_HOST` environment variable (e.g., `192.168.1.100`)
+- **Custom Port**: Set `LMSTUDIO_PORT` environment variable (e.g., `5678`)
+
+Example:
+```bash
+export LMSTUDIO_HOST=192.168.1.100
+export LMSTUDIO_PORT=5678
+python lmstudio_bridge.py
+```
+
+📖 **For detailed configuration options**, see [CONFIGURATION.md](CONFIGURATION.md)
+
 ## Prerequisites
 
 - Python 3.7+
