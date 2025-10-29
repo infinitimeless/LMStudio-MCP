@@ -7,7 +7,7 @@ import os
 from typing import List, Dict, Any, Optional, Union
 
 # Initialize FastMCP server
-mcp = FastMCP("lmstudio-bridge")
+mcp = FastMCP("lmstudio-bridge-enhanced")
 
 # LM Studio settings - configurable via environment variables
 LMSTUDIO_HOST = os.getenv("LMSTUDIO_HOST", "localhost")
