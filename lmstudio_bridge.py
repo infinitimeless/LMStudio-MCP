@@ -262,7 +262,7 @@ async def generate_embeddings(text: Union[str, List[str]], model: str = "default
         return json.dumps(error_response)
 
 @mcp.tool()
-async def create_response(input_text: str, previous_response_id: Optional[str] = None, reasoning_effort: str = "medium", stream: bool = False) -> str:
+async def create_response(input_text: str, previous_response_id: Optional[str] = None, reasoning_effort: str = "medium", stream: bool = False, model: Optional[str] = None) -> str:
     """Create a response using LM Studio's stateful /v1/responses endpoint.
 
     This endpoint provides stateful conversations where you can reference previous
@@ -273,13 +273,23 @@ async def create_response(input_text: str, previous_response_id: Optional[str] =
         previous_response_id: Optional ID from a previous response to continue conversation
         reasoning_effort: Level of reasoning effort - "low", "medium", or "high" (default "medium")
         stream: Whether to stream the response (default False)
+        model: Model to use (default: uses currently loaded model)
 
     Returns:
         JSON string with response including ID for future reference
     """
     try:
+        # Get current model if not specified
+        if model is None:
+            try:
+                current_model_response = await get_current_model()
+                model = current_model_response.replace("Currently loaded model: ", "").strip()
+            except:
+                model = "qwen/qwen3-coder-30b"  # Fallback
+
         payload = {
             "input": input_text,
+            "model": model,
             "stream": stream
         }
 
