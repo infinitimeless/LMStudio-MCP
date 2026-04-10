@@ -181,8 +181,18 @@ MIT
 
 ## Acknowledgements
 
-This project was originally developed as "Claude-LMStudio-Bridge_V2" and has been renamed and open-sourced as "LMStudio-MCP".
+This project was originally developed as "Claude-LMStudio-Bridge_V2" and has been 
+renamed and open-sourced as "LMStudio-MCP".
 
+### Community Projects
+
+Looking for more advanced features? Check out the community-built enhanced version:
+
+- **[lmstudio-bridge-enhanced](https://github.com/ahmedibrahim085/lmstudio-bridge-enhanced)** 
+  by [@ahmedibrahim085](https://github.com/ahmedibrahim085) — A powerful extension built 
+  on top of this project, adding autonomous agent loops, 37 tools, dynamic MCP discovery, 
+  multi-model routing, vision support, and much more.
+  
 ---
 
 **🌟 If this project helps you, please consider giving it a star!**
