@@ -126,12 +126,72 @@ python lmstudio_bridge.py
 
 For complete MCP configuration instructions, see [MCP_CONFIGURATION.md](MCP_CONFIGURATION.md).
 
+### Optional: MCP `description` hint
+
+You can add a `description` field to your `.mcp.json` entry to help Claude understand when to use this server and what to expect. This is particularly useful for reminding Claude of version requirements:
+
+```json
+{
+  "lmstudio-mcp": {
+    "command": "...",
+    "args": [...],
+    "description": "Local LLM bridge via LM Studio. Use for private/offline inference, embeddings, and multi-turn conversations. start_conversation and continue_conversation require LM Studio v0.3.29+."
+  }
+}
+```
+
+## 🧠 LM Studio System Prompt (Recommended)
+
+Setting a system prompt directly in LM Studio gives your local model a consistent baseline personality and behaviour across all interactions — without needing to pass it on every API call.
+
+### How to set it
+
+1. Open **LM Studio**
+2. Click the model name at the top of the chat panel
+3. Find the **System Prompt** field (may be under a ⚙️ gear icon or **Advanced settings**)
+4. Paste your system prompt and save
+
+> The system prompt set here applies to all completions sent via the API, including those from this MCP bridge.
+
+### Example system prompts
+
+**General assistant — clean and direct:**
+```
+You are a helpful, concise assistant. Answer directly without preamble like
+"Sure!" or "Of course!". Never cut off mid-sentence — always finish your thought.
+```
+
+**Casual conversation partner:**
+```
+You are a regular person having a relaxed conversation with a friend.
+Keep responses short and natural, like real chat. No bullet points or formal
+language. You can invent fun details about your life and stay consistent with them.
+Never cut off mid-sentence — always finish your thought.
+```
+
+**Local coding assistant:**
+```
+You are an expert software engineer. Be concise and precise. When writing code,
+always include brief inline comments. Prefer simple, readable solutions over
+clever ones. Never cut off mid-sentence or mid-code block.
+```
+
+**Privacy-first document analyst:**
+```
+You are a careful document analyst. Summarise accurately and concisely.
+Never invent information not present in the source material.
+Always flag uncertainty explicitly.
+```
+
+> 💡 **Tip:** Always end your system prompt with "Never cut off mid-sentence — always finish your thought." This prevents truncated responses regardless of how `max_tokens` is configured.
+
 ## Usage
 
 1. **Start LM Studio** and ensure it's running on port 1234 (the default)
-2. **Load a model** in LM Studio
-3. **Configure Claude MCP** with one of the configurations above
-4. **Connect to the MCP server** in Claude when prompted
+2. **Set a system prompt** in LM Studio (see above — recommended)
+3. **Load a model** in LM Studio
+4. **Configure Claude MCP** with one of the configurations above
+5. **Connect to the MCP server** in Claude when prompted
 
 ## Available Tools
 
