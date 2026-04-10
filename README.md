@@ -11,7 +11,9 @@ LMStudio-MCP creates a bridge between Claude (with MCP capabilities) and your lo
 - Check the health of your LM Studio API
 - List available models
 - Get the currently loaded model
-- Generate completions using your local models
+- Generate chat and raw text completions using your local models
+- Generate vector embeddings for semantic search and RAG
+- Hold stateful multi-turn conversations via response IDs
 
 This enables you to leverage your own locally running models through Claude's interface, combining Claude's capabilities with your private models.
 
@@ -58,6 +60,23 @@ docker-compose up -d
 ```
 
 For detailed deployment instructions, see [DOCKER.md](DOCKER.md).
+
+## ⚙️ Configuration
+
+The bridge supports flexible configuration for different deployment scenarios:
+
+- **Default**: Connects to `http://localhost:1234/v1`
+- **Custom Host**: Set `LMSTUDIO_HOST` environment variable (e.g., `192.168.1.100`)
+- **Custom Port**: Set `LMSTUDIO_PORT` environment variable (e.g., `5678`)
+
+Example:
+```bash
+export LMSTUDIO_HOST=192.168.1.100
+export LMSTUDIO_PORT=5678
+python lmstudio_bridge.py
+```
+
+📖 **For detailed configuration options**, see [CONFIGURATION.md](CONFIGURATION.md)
 
 ## MCP Configuration
 
@@ -113,14 +132,19 @@ For complete MCP configuration instructions, see [MCP_CONFIGURATION.md](MCP_CONF
 3. **Configure Claude MCP** with one of the configurations above
 4. **Connect to the MCP server** in Claude when prompted
 
-## Available Functions
+## Available Tools
 
-The bridge provides the following functions:
+The bridge provides the following 7 tools:
 
-- `health_check()`: Verify if LM Studio API is accessible
-- `list_models()`: Get a list of all available models in LM Studio
-- `get_current_model()`: Identify which model is currently loaded
-- `chat_completion(prompt, system_prompt, temperature, max_tokens)`: Generate text from your local model
+| Tool | Description |
+|------|-------------|
+| `health_check()` | Verify if LM Studio API is accessible |
+| `list_models()` | Get a list of all available models in LM Studio |
+| `get_current_model()` | Identify which model is currently loaded |
+| `chat_completion(prompt, system_prompt, temperature, max_tokens)` | Generate a chat response from your local model |
+| `text_completion(prompt, temperature, max_tokens, stop_sequences)` | Generate raw text/code completion — faster, no chat formatting overhead |
+| `generate_embeddings(text, model)` | Generate vector embeddings for semantic search and RAG workflows |
+| `create_response(input_text, previous_response_id, reasoning_effort, stream, model)` | Stateful multi-turn conversation via response IDs — requires LM Studio v0.3.29+ |
 
 ## Deployment Options
 
@@ -139,6 +163,8 @@ This project supports multiple deployment methods:
 - Some models (e.g., phi-3.5-mini-instruct_uncensored) may have compatibility issues
 - The bridge currently uses only the OpenAI-compatible API endpoints of LM Studio
 - Model responses will be limited by the capabilities of your locally loaded model
+- `create_response` requires LM Studio v0.3.29 or later
+- `generate_embeddings` requires an embedding-specific model (e.g. `text-embedding-nomic-embed-text-v1.5`)
 
 ## Troubleshooting
 
@@ -181,18 +207,18 @@ MIT
 
 ## Acknowledgements
 
-This project was originally developed as "Claude-LMStudio-Bridge_V2" and has been 
+This project was originally developed as "Claude-LMStudio-Bridge_V2" and has been
 renamed and open-sourced as "LMStudio-MCP".
 
 ### Community Projects
 
 Looking for more advanced features? Check out the community-built enhanced version:
 
-- **[lmstudio-bridge-enhanced](https://github.com/ahmedibrahim085/lmstudio-bridge-enhanced)** 
-  by [@ahmedibrahim085](https://github.com/ahmedibrahim085) — A powerful extension built 
-  on top of this project, adding autonomous agent loops, 37 tools, dynamic MCP discovery, 
+- **[lmstudio-bridge-enhanced](https://github.com/ahmedibrahim085/lmstudio-bridge-enhanced)**
+  by [@ahmedibrahim085](https://github.com/ahmedibrahim085) — A powerful extension built
+  on top of this project, adding autonomous agent loops, 37 tools, dynamic MCP discovery,
   multi-model routing, vision support, and much more.
-  
+
 ---
 
 **🌟 If this project helps you, please consider giving it a star!**
