@@ -14,6 +14,7 @@ LMStudio-MCP creates a bridge between Claude (with MCP capabilities) and your lo
 - Generate chat and raw text completions using your local models
 - Generate vector embeddings for semantic search and RAG
 - Hold stateful multi-turn conversations via response IDs
+- Start and continue persistent conversations with a locked-in system prompt
 
 This enables you to leverage your own locally running models through Claude's interface, combining Claude's capabilities with your private models.
 
@@ -134,7 +135,7 @@ For complete MCP configuration instructions, see [MCP_CONFIGURATION.md](MCP_CONF
 
 ## Available Tools
 
-The bridge provides the following 7 tools:
+The bridge provides the following 9 tools:
 
 | Tool | Description |
 |------|-------------|
@@ -144,7 +145,36 @@ The bridge provides the following 7 tools:
 | `chat_completion(prompt, system_prompt, temperature, max_tokens)` | Generate a chat response from your local model |
 | `text_completion(prompt, temperature, max_tokens, stop_sequences)` | Generate raw text/code completion — faster, no chat formatting overhead |
 | `generate_embeddings(text, model)` | Generate vector embeddings for semantic search and RAG workflows |
-| `create_response(input_text, previous_response_id, reasoning_effort, stream, model)` | Stateful multi-turn conversation via response IDs — requires LM Studio v0.3.29+ |
+| `create_response(input_text, previous_response_id, reasoning_effort, stream, model)` | Stateful conversation via response IDs — requires LM Studio v0.3.29+ |
+| `start_conversation(system_prompt, first_message, temperature, max_tokens, model)` | Start a multi-turn session with a persistent system prompt — returns a `response_id` |
+| `continue_conversation(response_id, message, temperature, max_tokens, model)` | Continue a session started with `start_conversation` — context preserved automatically |
+
+### Multi-turn conversation workflow
+
+The recommended way to run a persistent conversation with a local model:
+
+```
+1. start_conversation(
+     system_prompt="You are a friend at a bar, keep it casual and fun.",
+     first_message="Hey! How's it going?"
+   )
+   → { response_id: "resp_abc...", message: "Hey! Not bad, just unwinding..." }
+
+2. continue_conversation(
+     response_id="resp_abc...",
+     message="Work's been insane this week."
+   )
+   → { response_id: "resp_def...", message: "Ugh, tell me about it..." }
+
+3. continue_conversation(
+     response_id="resp_def...",
+     message="If you could go anywhere tomorrow, where would you go?"
+   )
+   → { response_id: "resp_ghi...", message: "Honestly? Northern Portugal..." }
+```
+
+> The system prompt is locked in for the entire session — no need to re-send it on every turn.
+> Requires LM Studio v0.3.29+.
 
 ## Deployment Options
 
@@ -163,7 +193,7 @@ This project supports multiple deployment methods:
 - Some models (e.g., phi-3.5-mini-instruct_uncensored) may have compatibility issues
 - The bridge currently uses only the OpenAI-compatible API endpoints of LM Studio
 - Model responses will be limited by the capabilities of your locally loaded model
-- `create_response` requires LM Studio v0.3.29 or later
+- `create_response`, `start_conversation`, and `continue_conversation` require LM Studio v0.3.29+
 - `generate_embeddings` requires an embedding-specific model (e.g. `text-embedding-nomic-embed-text-v1.5`)
 
 ## Troubleshooting
