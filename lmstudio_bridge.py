@@ -112,7 +112,7 @@ async def chat_completion(
     prompt: str,
     system_prompt: str = "",
     temperature: float = 0.7,
-    max_tokens: int = 1024
+    max_tokens: int = 2048
 ) -> str:
     """Generate a chat completion from the current LM Studio model.
 
@@ -171,7 +171,7 @@ async def chat_completion(
 async def text_completion(
     prompt: str,
     temperature: float = 0.7,
-    max_tokens: int = 1024,
+    max_tokens: int = 2048,
     stop_sequences: Optional[List[str]] = None
 ) -> str:
     """Generate a raw text completion (non-chat format) from LM Studio.
@@ -182,7 +182,7 @@ async def text_completion(
     Args:
         prompt: The text prompt to complete
         temperature: Controls randomness (0.0 to 2.0, default 0.7)
-        max_tokens: Maximum number of tokens to generate (default 1024)
+        max_tokens: Maximum number of tokens to generate (default 2048)
         stop_sequences: Optional list of sequences where generation will stop
 
     Returns:
@@ -376,6 +376,211 @@ async def create_response(
         return json.dumps({"error": f"Failed to create response: {str(e)}"})
     except Exception as e:
         log_error(f"Unexpected error in create_response: {str(e)}")
+        return json.dumps({"error": f"Unexpected error: {str(e)}"})
+
+
+@mcp.tool()
+async def start_conversation(
+    system_prompt: str,
+    first_message: str,
+    temperature: float = 0.7,
+    max_tokens: int = 2048,
+    model: Optional[str] = None
+) -> str:
+    """Start a stateful conversation with a persistent system prompt.
+
+    This is the recommended way to begin a multi-turn conversation with
+    your local model. It locks in a system prompt for the entire session
+    and returns a response_id you can pass to continue_conversation for
+    all subsequent turns — no need to re-send the system prompt or
+    manage message history manually.
+
+    Typical workflow:
+        1. Call start_conversation(system_prompt=..., first_message=...)
+        2. Note the 'response_id' in the returned JSON
+        3. Call continue_conversation(response_id=..., message=...) for
+           each subsequent turn
+
+    Args:
+        system_prompt: The persona or instructions to apply for the whole
+                       conversation (e.g. "You are a friend at a bar,
+                       keep it casual and fun")
+        first_message: The opening message to send to the model
+        temperature: Controls randomness (0.0 to 1.0, default 0.7)
+        max_tokens: Maximum tokens per response (default 2048)
+        model: Model to use. Auto-detected if omitted.
+
+    Returns:
+        JSON string with keys:
+          - response_id: pass this to continue_conversation
+          - message: the model's first response
+          - model: the model that was used
+    """
+    try:
+        # Auto-detect model if not specified
+        if model is None:
+            try:
+                current = await get_current_model()
+                detected = current.replace("Currently loaded model: ", "").strip()
+                if not detected or detected == "Unknown":
+                    raise ValueError("Could not determine current model")
+                model = detected
+            except Exception as e:
+                log_error(f"Model auto-detection failed: {str(e)}")
+                return json.dumps({
+                    "error": (
+                        "Could not detect the currently loaded model. "
+                        "Please specify a model explicitly via the 'model' parameter."
+                    )
+                })
+
+        # Build the opening payload — system prompt embedded as instructions
+        payload: Dict[str, Any] = {
+            "input": first_message,
+            "model": model,
+            "stream": False,
+            "instructions": system_prompt,
+        }
+
+        log_info("Starting new stateful conversation")
+
+        response = requests.post(
+            f"{LMSTUDIO_API_BASE}/responses",
+            json=payload,
+            timeout=60
+        )
+
+        if response.status_code != 200:
+            log_error(f"LM Studio API error: {response.status_code}")
+            return json.dumps({
+                "error": f"LM Studio returned status code {response.status_code}"
+            })
+
+        data = response.json()
+        log_info("Conversation started successfully")
+
+        # Extract the text content from the response
+        message_text = ""
+        output = data.get("output", [])
+        if isinstance(output, list):
+            for block in output:
+                if isinstance(block, dict) and block.get("type") == "message":
+                    for content in block.get("content", []):
+                        if isinstance(content, dict) and content.get("type") == "output_text":
+                            message_text = content.get("text", "")
+                            break
+        elif isinstance(output, str):
+            message_text = output
+
+        return json.dumps({
+            "response_id": data.get("id", ""),
+            "message": message_text or data.get("output", ""),
+            "model": data.get("model", model)
+        })
+
+    except requests.exceptions.RequestException as e:
+        log_error(f"Request error in start_conversation: {str(e)}")
+        return json.dumps({"error": f"Failed to start conversation: {str(e)}"})
+    except Exception as e:
+        log_error(f"Unexpected error in start_conversation: {str(e)}")
+        return json.dumps({"error": f"Unexpected error: {str(e)}"})
+
+
+@mcp.tool()
+async def continue_conversation(
+    response_id: str,
+    message: str,
+    temperature: float = 0.7,
+    max_tokens: int = 2048,
+    model: Optional[str] = None
+) -> str:
+    """Continue a stateful conversation started with start_conversation.
+
+    Sends the next message in a conversation, automatically chaining
+    context via the response_id. The system prompt from the original
+    start_conversation call is preserved throughout — you never need
+    to re-send it.
+
+    Args:
+        response_id: The 'response_id' returned by start_conversation
+                     or a previous continue_conversation call
+        message: Your next message in the conversation
+        temperature: Controls randomness (0.0 to 1.0, default 0.7)
+        max_tokens: Maximum tokens per response (default 2048)
+        model: Model to use. Auto-detected if omitted.
+
+    Returns:
+        JSON string with keys:
+          - response_id: pass this to the next continue_conversation call
+          - message: the model's response
+          - model: the model that was used
+    """
+    try:
+        # Auto-detect model if not specified
+        if model is None:
+            try:
+                current = await get_current_model()
+                detected = current.replace("Currently loaded model: ", "").strip()
+                if not detected or detected == "Unknown":
+                    raise ValueError("Could not determine current model")
+                model = detected
+            except Exception as e:
+                log_error(f"Model auto-detection failed: {str(e)}")
+                return json.dumps({
+                    "error": (
+                        "Could not detect the currently loaded model. "
+                        "Please specify a model explicitly via the 'model' parameter."
+                    )
+                })
+
+        payload: Dict[str, Any] = {
+            "input": message,
+            "model": model,
+            "stream": False,
+            "previous_response_id": response_id,
+        }
+
+        log_info(f"Continuing conversation (previous_response_id={response_id})")
+
+        response = requests.post(
+            f"{LMSTUDIO_API_BASE}/responses",
+            json=payload,
+            timeout=60
+        )
+
+        if response.status_code != 200:
+            log_error(f"LM Studio API error: {response.status_code}")
+            return json.dumps({
+                "error": f"LM Studio returned status code {response.status_code}"
+            })
+
+        data = response.json()
+        log_info("Received continuation response")
+
+        # Extract the text content from the response
+        message_text = ""
+        output = data.get("output", [])
+        if isinstance(output, list):
+            for block in output:
+                if isinstance(block, dict) and block.get("type") == "message":
+                    for content in block.get("content", []):
+                        if isinstance(content, dict) and content.get("type") == "output_text":
+                            message_text = content.get("text", "")
+                            break
+        elif isinstance(output, str):
+            message_text = output
+
+        return json.dumps({
+            "response_id": data.get("id", ""),
+            "message": message_text or data.get("output", ""),
+            "model": data.get("model", model)
+        })
+
+    except requests.exceptions.RequestException as e:
+        log_error(f"Request error in continue_conversation: {str(e)}")
+        return json.dumps({"error": f"Failed to continue conversation: {str(e)}"})
+    except Exception as e:
+        log_error(f"Unexpected error in continue_conversation: {str(e)}")
         return json.dumps({"error": f"Unexpected error: {str(e)}"})
 
 
