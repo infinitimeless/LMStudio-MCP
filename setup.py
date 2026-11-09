@@ -22,7 +22,7 @@ setup(
     python_requires=">=3.7",
     install_requires=[
         "requests",
-        "mcp[cli]",
+        "mcp[cli]>=1.2,<2",
         "openai>=1.0.0",
     ],
     entry_points={

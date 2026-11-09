@@ -38,7 +38,7 @@ curl -fsSL https://raw.githubusercontent.com/infinitimeless/LMStudio-MCP/main/in
 ```bash
 git clone https://github.com/infinitimeless/LMStudio-MCP.git
 cd LMStudio-MCP
-pip install requests "mcp[cli]" openai
+pip install requests "mcp[cli]>=1.2,<2" openai
 ```
 
 #### 2. Docker Installation
